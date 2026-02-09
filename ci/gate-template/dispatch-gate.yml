@@ -1,0 +1,40 @@
+name: __GATE_NAME__
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install gate deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r vendor/gatekit/requirements-gates.txt
+
+      - name: Gate template drift check
+        run: |
+          python vendor/gatekit/tools/gates/gate_template_drift_gate.py \
+            --templates-dir vendor/gatekit/ci/gate-template \
+            --instances-glob ".github/workflows/*-gate.yml" \
+            --require-instances \
+            --require-template-tag
+
+      - name: Run gate pack
+        run: |
+          python __GATE_EXEC__
