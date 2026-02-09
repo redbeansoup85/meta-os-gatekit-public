@@ -35,6 +35,3 @@ jobs:
             --require-instances \
             --require-template-tag
 
-      - name: Run gate pack
-        run: |
-          python __GATE_EXEC__

@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - "__PATH__"
+  push:
+    branches: [ "main" ]
+    paths:
+      - "__PATH__"
 
 permissions:
   contents: read
