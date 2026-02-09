@@ -64,17 +64,37 @@ def normalize_gate_file_tokens(lines: Iterable[str], gate_file: str) -> List[str
 
 def normalize_paths_entries(lines: List[str]) -> List[str]:
     """
-    Make templates class-wide by ignoring the *content* of paths list entries.
-    Any YAML list item in quotes becomes a placeholder.
+    Normalize any `paths:` list by collapsing all list items into a single placeholder entry.
+    This removes drift caused by different path item counts across gate workflows.
     """
     out: List[str] = []
-    for ln in lines:
-        if re.match(r'^\s*-\s*"[^\"]+"\s*$', ln):
-            out.append(re.sub(r'^\s*-\s*"[^\"]+"\s*$', '      - "__PATH__"', ln))
-        else:
-            out.append(ln)
-    return out
+    i = 0
+    while i < len(lines):
+        ln = lines[i]
+        out.append(ln)
 
+        m = re.match(r'^(\s*)paths:\s*$', ln)
+        if not m:
+            i += 1
+            continue
+
+        base_indent = m.group(1)
+        item_indent = base_indent + "  "
+        j = i + 1
+        consumed = False
+
+        while j < len(lines):
+            if re.match(r'^' + re.escape(item_indent) + r'-\s+.*$', lines[j]):
+                consumed = True
+                j += 1
+                continue
+            break
+
+        # paths 항목은 무조건 1개로 압축
+        out.append(f'{item_indent}- "__PATH__"')
+        i = j if consumed else (i + 1)
+
+    return out
 def normalize_gate_exec(lines: List[str]) -> List[str]:
     """
     Allow gate-specific python exec lines while still enforcing structure.
