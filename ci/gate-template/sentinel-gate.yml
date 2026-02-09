@@ -1,0 +1,51 @@
+name: __GATE_NAME__
+
+on:
+  pull_request:
+    paths:
+      - "tools/gates/**"
+      - "tests/gates/**"
+      - "adapters/**"
+      - "adapter_registry/**"
+      - "contracts/**"
+      - ".github/workflows/__GATE_FILE__"
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install gate deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-gates.txt
+
+      - name: Gate template drift check
+        run: |
+          python tools/gates/gate_template_drift_gate.py \
+            --template ci/gate-template/sentinel-gate.yml \
+            --instance .github/workflows/__GATE_FILE__
+
+      - name: Run static_scan gate
+        run: |
+          python tools/gates/static_scan.py
+
+      - name: Run adapter_registry gate
+        run: |
+          python tools/gates/adapter_registry_gate.py
+
+      - name: Run gate-only tests
+        run: |
+          pytest -q tests/gates
