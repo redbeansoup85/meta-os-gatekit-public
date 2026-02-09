@@ -112,6 +112,26 @@ def normalize_gate_exec(lines: List[str]) -> List[str]:
             out.append(ln)
     return out
 
+
+def normalize_jobs_key(lines: List[str]) -> List[str]:
+    """
+    Normalize the first job id under `jobs:` to `gate:` so repo-specific job ids don't cause drift.
+    """
+    out: List[str] = []
+    prev = ""
+    for ln in lines:
+        if prev.strip() == "jobs:":
+            # any "  <job_id>:" becomes "  gate:"
+            m = re.match(r'^\s{2}[A-Za-z0-9_.-]+:\s*$', ln)
+            if m:
+                out.append("  gate:")
+                prev = ln
+                continue
+        out.append(ln)
+        prev = ln
+    return out
+
+
 def sha256_lines(lines: Iterable[str]) -> str:
     h = hashlib.sha256()
     for ln in lines:
