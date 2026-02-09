@@ -30,7 +30,7 @@ def read_lines(p: Path) -> List[str]:
             "line": 0,
             "expected": "file exists",
             "got": "FileNotFoundError",
-            "hint": "Remove missing instance from --instance list, or add the workflow file to this repo.",
+            "hint": "Remove missing instance from list, or add the workflow file to this repo.",
         })
         sys.exit(2)
 
@@ -74,9 +74,11 @@ def first_diff(a: List[str], b: List[str]) -> Tuple[int, str, str]:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--template", required=True)
-    ap.add_argument("--instance", required=True, action="append")
-    ap.add_argument("--root", default=".")
+    ap.add_argument("--template", required=True, help="Path to canonical template YAML")
+    ap.add_argument("--instance", action="append", default=[], help="Workflow instance YAML (repeatable)")
+    ap.add_argument("--instances-glob", action="append", default=[], help="Glob(s) to discover instances, e.g. .github/workflows/*-gate.yml")
+    ap.add_argument("--require-instances", action="store_true", help="Fail if no instances discovered/provided")
+    ap.add_argument("--root", default=".", help="Repo root")
     args = ap.parse_args()
 
     root = Path(args.root).resolve()
@@ -85,15 +87,34 @@ def main() -> None:
     tmpl_raw = read_lines(template_path)
     tmpl_lines_base = normalize_common(tmpl_raw)
 
+    # Build instance list (explicit + glob)
+    instances = list(args.instance)
+    for pat in args.instances_glob:
+        for p in root.glob(pat):
+            if p.is_file():
+                rel = str(p.relative_to(root))
+                if rel not in instances:
+                    instances.append(rel)
+
+    if args.require_instances and not instances:
+        emit_fail({
+            "rule_id": RULE_MISSING,
+            "file": "(instances)",
+            "line": 0,
+            "expected": ">=1 instance",
+            "got": "0 instances",
+            "hint": "Provide --instance or --instances-glob (e.g. .github/workflows/*-gate.yml).",
+        })
+        sys.exit(2)
+
     failures = 0
 
-    for inst in args.instance:
+    for inst in instances:
         inst_path = (root / inst).resolve()
         gate_file = os.path.basename(str(inst_path))
 
         inst_raw = read_lines(inst_path)
         inst_lines = normalize_gate_file_tokens(normalize_common(inst_raw), gate_file=gate_file)
-
         tmpl_for_this = normalize_gate_file_tokens(tmpl_lines_base, gate_file=gate_file)
 
         tmpl_hash = sha256_lines(tmpl_for_this)
