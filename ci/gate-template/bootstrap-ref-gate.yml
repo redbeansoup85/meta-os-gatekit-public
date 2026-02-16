@@ -1,0 +1,26 @@
+# gatekit_template: bootstrap-ref-gate
+# gatekit_template: bootstrap-ref-gate
+name: __GATE_NAME__
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  bootstrap-ref-gate:
+
+    name: bootstrap-ref-gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run bootstrap reference gate (fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/gates/bootstrap_ref_gate.py --root ./
