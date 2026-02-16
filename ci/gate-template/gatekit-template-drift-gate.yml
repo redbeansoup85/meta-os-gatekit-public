@@ -1,0 +1,31 @@
+# gatekit_template: gatekit-template-drift-gate
+name: gatekit-template-drift-gate
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - "gatekit/templates/**"
+      - "tools/gates/gate_template_drift_gate.py"
+      - "docs/gatekit/**"
+
+jobs:
+  drift:
+    name: drift
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: run gatekit template drift gate (fail-closed)
+        run: |
+          python tools/gates/gate_template_drift_gate.py \
+            --require-template-tag \
+            --workflows-root .github/workflows \
+            --templates-root gatekit/templates \
+            --max-tag-lines 5

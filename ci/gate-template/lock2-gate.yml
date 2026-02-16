@@ -1,0 +1,53 @@
+# gatekit_template: lock2-gate
+name: lock2-gate
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  lock2-gate:
+
+    name: lock2-gate
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "sqlite+aiosqlite:///test.db"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test deps
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[test]' || python -m pip install -e .
+
+      - name: Unit tests (fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          make test
+
+      - name: LOCK-2 gate (approval is sole trigger)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/gates/lock2_gate.py --root .
+
+      - name: Static scan (external execution hints)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -c "from pathlib import Path; from tools.gates.static_scan import scan_tree; f=scan_tree(Path('.')); \
+          (print('FAIL-CLOSED: static scan findings detected') or [print(f'- {x.rule_id} | {x.file}:{x.line} | {x.snippet}') for x in f] or exit(1)) if f else print('OK: static scan clean')"
+
+# touch: retrigger checks

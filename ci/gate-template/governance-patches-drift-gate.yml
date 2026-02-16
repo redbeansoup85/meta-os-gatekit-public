@@ -1,0 +1,38 @@
+# gatekit_template: governance-patches-drift-gate
+name: Governance Patches Drift Gate
+
+on:
+  pull_request:
+    paths:
+      - "docs/governance/patches/**"
+      - "tools/update_governance_patches_index.py"
+
+jobs:
+  governance_patches_drift_gate:
+    name: governance-patches-drift-gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run updater
+        run: |
+          set -euo pipefail
+          python ./tools/update_governance_patches_index.py
+
+      - name: Fail if README drift detected
+        run: |
+          set -euo pipefail
+          if ! git diff --exit-code -- docs/governance/patches/README.md; then
+            echo "::error::Fail-Closed: governance patches index README drift detected."
+            echo "::error::Run: ./tools/update_governance_patches_index.py and commit the README changes."
+            exit 1
+          fi

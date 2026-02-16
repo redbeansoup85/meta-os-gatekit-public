@@ -1,3 +1,4 @@
+# gatekit_template: pr-paths-gate
 name: __GATE_NAME__
 
 on:

@@ -1,0 +1,40 @@
+# gatekit_template: loop-gate
+name: loop-gate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      root_dir:
+        description: "Root directory to scan for TASK_LOOP.yaml (default: tasks)"
+        required: false
+        default: "tasks"
+
+jobs:
+  gate:
+    name: loop-gate
+    runs-on: ubuntu-latest
+    env:
+      ROOT: ${{ github.event_name == 'workflow_dispatch' && inputs.root_dir || 'tasks' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run loop-gate (emit findings v1 JSON)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/gates/loop_gate.py --root "$ROOT" $([[ "${GITHUB_EVENT_NAME}" == "pull_request" ]] && echo "--enforce-pr-request" || true)
+
+      - name: Closed Loop KPI Summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "## Closed Loop KPI" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ROOT=$ROOT" >> "$GITHUB_STEP_SUMMARY"
+          if [ -x scripts/closed_loop_ratio.sh ]; then
+            ./scripts/closed_loop_ratio.sh "$ROOT" | sed "s/^/- /" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- SKIP: scripts/closed_loop_ratio.sh not found" >> "$GITHUB_STEP_SUMMARY"
+          fi

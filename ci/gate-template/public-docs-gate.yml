@@ -1,0 +1,27 @@
+# gatekit_template: public-docs-gate
+name: public-docs-gate
+
+on:
+  pull_request:
+    paths:
+      - "docs/public/**"
+      - "tools/public_docs_gate.py"
+      - "tests/tools/test_public_docs_gate.py"
+      - ".github/workflows/public-docs-gate.yml"
+      - ".github/CODEOWNERS"
+
+jobs:
+  public-docs-gate:
+
+    name: public-docs-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: |
+          python -m pip install -U pip
+          python -m pip install -e ".[test]"
+      - run: |
+          python tools/public_docs_gate.py --root .

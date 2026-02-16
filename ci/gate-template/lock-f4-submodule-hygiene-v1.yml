@@ -1,0 +1,26 @@
+# gatekit_template: lock-f4-submodule-hygiene-v1
+name: Submodule Hygiene Gate
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+jobs:
+  submodule-hygiene-gate:
+    name: submodule-hygiene-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: fetch gatekit (manual, unauth)
+        run: |
+          rm -rf vendor/gatekit
+          git clone --depth 1 https://github.com/redbeansoup85/meta-os-gatekit-public vendor/gatekit
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python tools/gates/submodule_hygiene_gate.py --root .

@@ -1,0 +1,59 @@
+# gatekit_template: required-checks-contract-gate
+name: required-checks-contract-gate
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  required-checks-contract-gate:
+    name: required-checks-contract-gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install gate deps (LOCK-minimal)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "PyYAML>=6.0"
+
+      # Debug visibility: ONLY on manual run (workflow_dispatch)
+      - name: Ruleset read (debug, workflow_dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RULESET_ID: "12562607"
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://api.github.com/repos/${REPO}/rulesets/${RULESET_ID}"
+          CODE="$(curl -sS -o /tmp/ruleset.json -w "%{http_code}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            "${URL}" || true)"
+          echo "ruleset_read_http_status=${CODE}"
+          if [ "${CODE}" != "200" ]; then
+            echo "ruleset_read_failed_body_snippet:"
+            head -c 500 /tmp/ruleset.json || true
+            exit 1
+          fi
+
+      - name: Required checks contract gate (ruleset-aware)
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python tools/gates/required_checks_contract_gate.py --ruleset-name "protect-main"

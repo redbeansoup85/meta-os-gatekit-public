@@ -1,0 +1,16 @@
+# gatekit_template: lock-f4-static-scan-policy-v1
+name: Static Scan Policy Gate
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+jobs:
+  static-scan-policy-gate:
+    name: static-scan-policy-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python tools/gates/static_scan_policy_gate.py --root .

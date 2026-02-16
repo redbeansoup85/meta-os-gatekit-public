@@ -1,0 +1,17 @@
+# gatekit_template: zone-static-gate
+name: zone-static-gate
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  zone-static-gate:
+    name: zone-static-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Zone Static Gate (fail-closed)
+        run: |
+          python tools/gates/zone_static_gate.py --root .
