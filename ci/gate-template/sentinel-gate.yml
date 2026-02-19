@@ -37,7 +37,7 @@ jobs:
       - name: Gate template drift check
         run: |
           python vendor/gatekit/tools/gates/gate_template_drift_gate.py \
-            --template vendor/gatekit/ci/gate-template/sentinel-gate.yml \
+            --templates-dir vendor/gatekit/ci/gate-template \
             --instance .github/workflows/__GATE_FILE__
 
       - name: Run static_scan gate
